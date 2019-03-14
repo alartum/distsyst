@@ -37,9 +37,9 @@ func main() {
 	net := emul.NewNetwork(&conf)
 	net.Launch()
 
-	msg := emul.Message{}
-	msg.PutString("HELLO")
 	for _, id := range net.GetIds() {
+		msg := new(emul.Message)
+		msg.PutString("HELLO")
 		net.Initialize(id, msg)
 	}
 	time.Sleep(1 * time.Second)

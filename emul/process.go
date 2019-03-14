@@ -32,14 +32,14 @@ func (p *Process) launch() {
 				break
 			}
 			mTarget, _ := msg.GetString()
-			go p.network.workFunctions[mTarget](p, &msg)
+			go p.network.workFunctions[mTarget](p, msg)
 		}
 		p.Log("Stopped\n")
 	}()
 }
 
 // Send performs a non-blocking send
-func (p *Process) Send(to int32, msg Message) {
+func (p *Process) Send(to int32, msg *Message) {
 	msg.from = p.Pid
 	msg.to = to
 	msg.sendTime = time.Now()
