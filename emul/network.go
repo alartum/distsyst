@@ -5,15 +5,23 @@ import (
 	"time"
 )
 
+// Vertex represents a node with given id and a set of its neighbors
+type Vertex struct {
+	id int32
+	ns map[int32]float32
+}
+
 // Network layer each process supposed to register in
 type Network struct {
-	errRate       float32
 	conn          Graph
 	in            map[int32]chan Message
 	pool          chan Message
+	delivery      chan Message
 	workFunctions map[string]func(*Process, *Message)
 
 	logs        chan string
+	dropRequest chan int32
+	addRequest  chan *Vertex
 	stopRequest chan bool
 	IsStopped   chan bool
 }
@@ -24,6 +32,10 @@ func NewNetwork(config *Config) *Network {
 
 	n.logs = make(chan string)
 	n.pool = make(chan Message)
+	n.delivery = make(chan Message)
+	n.addRequest = make(chan *Vertex)
+	n.dropRequest = make(chan int32)
+	n.stopRequest = make(chan bool)
 	n.conn = make(Graph)
 	n.in = make(map[int32]chan Message)
 	n.workFunctions = make(map[string]func(*Process, *Message))
@@ -36,7 +48,7 @@ func NewNetwork(config *Config) *Network {
 		n.conn[id] = newMap
 		n.in[id] = make(chan Message)
 		p := newProcess(id, n)
-		p.start()
+		p.launch()
 	}
 	for name, f := range config.workFunctions {
 		n.workFunctions[name] = f
@@ -58,6 +70,16 @@ func (n *Network) Stop() {
 	n.stopRequest <- true
 }
 
+// Drop allows to drop given node from the network
+func (n *Network) Drop(id int32) {
+	n.dropRequest <- id
+}
+
+// Add allows to add a node with given id to the network
+func (n *Network) Add(v *Vertex) {
+	n.addRequest <- v
+}
+
 // Launch gives the network a signal to start inter-process communication
 func (n *Network) Launch() {
 	fmt.Println("[Network] Launched")
@@ -68,6 +90,10 @@ func (n *Network) Launch() {
 				fmt.Printf("%s", mLog)
 			case mNew := <-n.pool:
 				n.send(mNew)
+			case mDeliver := <-n.delivery:
+				n.deliver(mDeliver)
+			case mDrop := <-n.dropRequest:
+				n.dropNode(mDrop)
 			case mStop := <-n.stopRequest:
 				if mStop == true {
 					fmt.Println("[Network] Stopped")
@@ -78,11 +104,34 @@ func (n *Network) Launch() {
 	}()
 }
 
-func (n *Network) send(msg Message) {
+func (n *Network) dropNode(id int32) {
+	ch, ok := n.in[id]
+	if !ok {
+		fmt.Printf("[Network] Node [%d] is not present, can't drop\n", id)
+	} else {
+		fmt.Printf("[Network] Dropping node [%d]\n", id)
+		close(ch)
+		delete(n.in, id)
+		delete(n.conn, id)
+		for _, ns := range n.conn {
+			for u := range ns {
+				delete(ns, u)
+			}
+		}
+	}
+}
+
+func (n *Network) deliver(msg Message) {
+	msg.deliveryTime = time.Now()
 	ch, ok := n.in[msg.to]
 	if !ok {
-		panic(ok)
+		fmt.Printf("[Network] Delivery failed, host [%d] is not present\n", msg.to)
+	} else {
+		ch <- msg
 	}
+}
+
+func (n *Network) send(msg Message) {
 	var delay float32
 	if msg.from != -1 {
 		vs, ok := n.conn[msg.from]
@@ -97,8 +146,7 @@ func (n *Network) send(msg Message) {
 	}
 	go func() {
 		time.Sleep(time.Duration(delay) * time.Second)
-		msg.deliveryTime = time.Now()
-		ch <- msg
+		n.delivery <- msg
 	}()
 }
 

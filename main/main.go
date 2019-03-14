@@ -42,6 +42,7 @@ func main() {
 	for _, id := range net.GetIds() {
 		net.Initialize(id, msg)
 	}
-
+	time.Sleep(1 * time.Second)
+	net.Drop(0)
 	time.Sleep(10 * time.Second)
 }

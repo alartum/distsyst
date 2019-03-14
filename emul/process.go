@@ -20,13 +20,21 @@ func newProcess(id int32, n *Network) *Process {
 	return &p
 }
 
-func (p *Process) start() {
+func (p *Process) launch() {
 	go func() {
 		for {
-			msg := <-p.network.in[p.Pid]
+			ch, ok := p.network.in[p.Pid]
+			if !ok {
+				break
+			}
+			msg, opened := <-ch
+			if !opened {
+				break
+			}
 			mTarget, _ := msg.GetString()
 			go p.network.workFunctions[mTarget](p, &msg)
 		}
+		p.Log("Stopped\n")
 	}()
 }
 
