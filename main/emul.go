@@ -3,17 +3,17 @@ package main
 import (
 	"time"
 
-	"github.com/alartum/distsyst/emulutil"
+	"github.com/alartum/distsyst/emul"
 )
 
-func sayHello(p *emulutil.Process, m *emulutil.Message) {
+func sayHello(p *emul.Process, m *emul.Message) {
 	ns := p.GetNeighbors()
 	p.Log("Hello, my neighbors: %v\n", ns)
 }
 
-func bully(p *emulutil.Process, m *emulutil.Message) {
+func bully(p *emul.Process, m *emul.Message) {
 	s, _ := m.GetString()
-	msg := emulutil.Message{}
+	msg := emul.Message{}
 	switch s {
 	case "INIT":
 		msg.PutInt32(1)
@@ -21,7 +21,7 @@ func bully(p *emulutil.Process, m *emulutil.Message) {
 }
 
 func main() {
-	var conf emulutil.Config
+	var conf emul.Config
 	conf.AddEdgeUndirected(0, 4, 2)
 	conf.AddEdgeUndirected(0, 5, 4)
 	conf.AddEdgeUndirected(1, 5, 7)
@@ -34,10 +34,10 @@ func main() {
 
 	conf.AddWorkFunction("HELLO", sayHello)
 
-	net := emulutil.NewNetwork(&conf)
+	net := emul.NewNetwork(&conf)
 	net.Launch()
 
-	msg := emulutil.Message{}
+	msg := emul.Message{}
 	msg.PutString("HELLO")
 	for _, id := range net.GetIds() {
 		net.Initialize(id, msg)

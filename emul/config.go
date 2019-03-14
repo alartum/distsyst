@@ -1,4 +1,4 @@
-package emulutil
+package emul
 
 // Graph describes single-directed connections
 type Graph map[int32]map[int32]float32

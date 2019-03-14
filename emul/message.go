@@ -1,4 +1,4 @@
-package emulutil
+package emul
 
 import (
 	"bytes"
