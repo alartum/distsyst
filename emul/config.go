@@ -1,5 +1,12 @@
 package emul
 
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+)
+
 // Graph describes single-directed connections
 type Graph map[int32]map[int32]float32
 
@@ -7,6 +14,7 @@ type Graph map[int32]map[int32]float32
 type Config struct {
 	conn          Graph
 	workFunctions map[string]func(*Process, *Message)
+	init          []configInit
 }
 
 // AddWorkFunction adds new work function to the list
@@ -32,4 +40,51 @@ func (c *Config) AddEdgeDirected(from, to int32, delay float32) {
 func (c *Config) AddEdgeUndirected(from, to int32, delay float32) {
 	c.AddEdgeDirected(from, to, delay)
 	c.AddEdgeDirected(to, from, delay)
+}
+
+type configFile struct {
+	Network []configConnection
+	Init    []configInit
+}
+
+type configConnection struct {
+	Directed bool
+	From     []int32
+	To       []int32
+	Delay    float32
+}
+
+type configInit struct {
+	To  []int32
+	Msg string
+}
+
+// LoadFromFile loads config file and constructs Config instance accordingly
+func (c *Config) LoadFromFile(filename string) {
+	jsonFile, err := os.Open(filename)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("[Config] Loading from \"%s\"\n", filename)
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	defer jsonFile.Close()
+	var config configFile
+	err = json.Unmarshal([]byte(byteValue), &config)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for _, conn := range config.Network {
+		for _, from := range conn.From {
+			for _, to := range conn.To {
+				if conn.Directed {
+					c.AddEdgeDirected(from, to, conn.Delay)
+				} else {
+					c.AddEdgeUndirected(from, to, conn.Delay)
+				}
+			}
+		}
+	}
+
+	c.init = config.Init
 }

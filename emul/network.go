@@ -49,6 +49,15 @@ func NewNetwork(config *Config) *Network {
 	for name, f := range config.workFunctions {
 		n.workFunctions[name] = f
 	}
+
+	for _, init := range config.init {
+		for _, to := range init.To {
+			msg := new(Message)
+			msg.PutString(init.Msg)
+			n.Initialize(to, msg)
+		}
+	}
+
 	return n
 }
 

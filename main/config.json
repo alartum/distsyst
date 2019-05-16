@@ -1,0 +1,40 @@
+{
+    "network": [
+    {
+        "directed": false,
+        "from": [0],
+        "to": [4, 5],
+        "delay": 2
+    },
+    {
+        "directed": false,
+        "from": [1],
+        "to": [5],
+        "delay": 7
+    },
+    {
+        "directed": false,
+        "from": [2],
+        "to": [1, 3],
+        "delay": 3
+    },
+    {
+        "directed": false,
+        "from": [4],
+        "to": [1, 5],
+        "delay": 5
+    },
+    {
+        "directed": false,
+        "from": [5],
+        "to": [2, 3],
+        "delay": 6
+    }
+    ],
+    "init": [
+    {
+        "to": [0, 1, 2, 3, 4, 5],
+        "msg": "HELLO"
+    }    
+    ]
+}
